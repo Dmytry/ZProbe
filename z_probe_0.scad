@@ -1,3 +1,13 @@
+// TODO:
+// A gear on the top with matching rack generation
+// flats for screws that hold the switch
+// better magnet housing
+// magnet stick out more
+// try to retain magnets with a tight press fit within a star cutout or a polygon to permit slight expansion
+// retain wires at the static piece
+
+use <third_party/publicDomainGearV1.1.scad>
+
 $fa=3;
 $fs=0.2;
 
@@ -69,8 +79,25 @@ module sequentialHull(){
 		}
 }
 
-module shaft(enlarge=0){
+module cylinder_sequence(pts){
+    for(i=[0 : len(pts)-2]){
+        translate([0, 0, pts[i][0]]){
+            cylinder(pts[i+1][0]-pts[i][0]+eps, r1=pts[i][1], r2=pts[i+1][1]);
+        }
+    }
+}
+
+module shaft(enlarge=0, extra_height=0){
     enlarge_eps=eps*min(abs(enlarge),1.0); //max(-eps, min(eps, enlarge));
+    h=plate_width-hinge_attachment_h-abs(shaft_r2-shaft_r1);
+    cylinder_sequence([
+    [-enlarge_eps, shaft_r0+enlarge],
+    [abs(shaft_r1-shaft_r0), shaft_r1+enlarge],
+    [h,shaft_r1+enlarge],
+    [plate_width-hinge_attachment_h, shaft_r2+enlarge],
+    [plate_width+extra_height, shaft_r2+enlarge]
+    ]);
+    /*
     
     translate([0,0,-enlarge_eps]) cylinder(abs(shaft_r1-shaft_r0)+eps+enlarge_eps, r1=shaft_r0+enlarge, r2=shaft_r1+enlarge);
     h=plate_width-hinge_attachment_h-abs(shaft_r2-shaft_r1);
@@ -83,8 +110,8 @@ module shaft(enlarge=0){
     
     
     translate([0,0, plate_width-hinge_attachment_h]){
-        cylinder(hinge_attachment_h+enlarge_eps, r=shaft_r2+enlarge);
-    }
+        cylinder(hinge_attachment_h+enlarge_eps+extra_height, r=shaft_r2+enlarge);
+    }*/
 }
 
 module box(low, high){
@@ -229,10 +256,11 @@ difference(){
     }
     // pocket for the magnet
 
+/*
     translate([0,-shaft_r2-gap-print_single_wall, plate_width+magnet_r-hinge_attachment_h]){
         rotate(a=90, v=[1,0,0]) #cylinder(h=magnet_h+2*print_dilation_max, r=magnet_r);
     }
-    
+*/    
    
     
     //translate([-eps, -eps, -eps]) cube(size=[2*shaft_r2, 2*shaft_r2, plate_width+eps*2]);
