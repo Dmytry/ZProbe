@@ -65,7 +65,14 @@ wire_r=1+print_dilation;
 magnet_h=2.8; // undilated, sometimes may want 1 dilation or 2 dilations
 magnet_r=8/2+print_dilation;
 
-magnet_sticks_out_by=0.1;
+magnet_sticks_out_by=0.2;
+
+gear_thickness=10;
+mm_per_tooth=5;
+
+// number of teeth does not have to be integer because we are not making a whole gear
+number_of_teeth=((shaft_r2+gap+thickness+mm_per_tooth*0.5)*2*PI/mm_per_tooth);
+gear_outer_radius=outer_radius(mm_per_tooth, number_of_teeth, print_dilation);
 
 rotate_static_by=45;//$t*90;//90;
 
@@ -91,27 +98,12 @@ module shaft(enlarge=0, extra_height=0){
     enlarge_eps=eps*min(abs(enlarge),1.0); //max(-eps, min(eps, enlarge));
     h=plate_width-hinge_attachment_h-abs(shaft_r2-shaft_r1);
     cylinder_sequence([
-    [-enlarge_eps, shaft_r0+enlarge],
-    [abs(shaft_r1-shaft_r0), shaft_r1+enlarge],
-    [h,shaft_r1+enlarge],
-    [plate_width-hinge_attachment_h, shaft_r2+enlarge],
-    [plate_width+extra_height, shaft_r2+enlarge]
+        [-enlarge_eps, shaft_r0+enlarge],
+        [abs(shaft_r1-shaft_r0), shaft_r1+enlarge],
+        [h,shaft_r1+enlarge],
+        [plate_width-hinge_attachment_h, shaft_r2+enlarge],
+        [plate_width+extra_height, shaft_r2+enlarge]
     ]);
-    /*
-    
-    translate([0,0,-enlarge_eps]) cylinder(abs(shaft_r1-shaft_r0)+eps+enlarge_eps, r1=shaft_r0+enlarge, r2=shaft_r1+enlarge);
-    h=plate_width-hinge_attachment_h-abs(shaft_r2-shaft_r1);
-    translate([0,0, abs(shaft_r1-shaft_r0)]){
-        cylinder(h-abs(shaft_r1-shaft_r0), r=shaft_r1+enlarge);
-    }    
-    translate([0,0, h]){
-        cylinder(abs(shaft_r2-shaft_r1)+eps, r1=shaft_r1+enlarge,r2=shaft_r2+enlarge);
-    }
-    
-    
-    translate([0,0, plate_width-hinge_attachment_h]){
-        cylinder(hinge_attachment_h+enlarge_eps+extra_height, r=shaft_r2+enlarge);
-    }*/
 }
 
 module box(low, high){
@@ -135,8 +127,8 @@ module place_screws(){
 
 // for preview
 //rotate(a=90, v=[1,0,0])
-module static_part(enlarge=0){
-    shaft(enlarge);
+module static_part(enlarge=0, extra_height=0){
+    shaft(enlarge, extra_height);
     extra_gap=2;
     difference(){
         translate([shaft_r2-screw_plate_thickness,-screw_plate_height-shaft_r2+extra_gap]){
@@ -181,12 +173,24 @@ module wire_conduit(){
 difference(){
     cr=shaft_r2-gap-screw_plate_thickness;
     union(){
-       
         cylinder(plate_width, r=cr);
+      
+        
+        bevel_gear_by=gear_outer_radius-(shaft_r2+gap+thickness);
+        intersection(){
+            translate([0,0,plate_width+gear_thickness*0.5-bevel_gear_by*0.5]) rotate(a=90 - (360.0/number_of_teeth), v=[0,0,1]){
+                gear(mm_per_tooth, number_of_teeth, gear_thickness+bevel_gear_by, teeth_to_hide=number_of_teeth*(3/4) - 3, clearance=2*print_dilation, backlash         =2*print_dilation);
+            }
+            
+            translate([0,0,plate_width-bevel_gear_by])#cylinder(gear_thickness+bevel_gear_by+eps, r1=shaft_r2+gap+thickness, r2=shaft_r2+gap+thickness+gear_thickness+bevel_gear_by+eps);
+
+        }
+        
+        
         box([cr-hinge_plate_thickness, -screw_plate_height-shaft_r2-eps - magnet_sticks_out_by, 0], [cr, 0, plate_width]);
         translate([cr, -screw_plate_height-shaft_r2, 0]){
             difference(){
-                hull(){                    
+                hull(){
                     // getting kind of ugly, have to replicate a piece of big cylinder
                     translate([-cr, screw_plate_height+shaft_r2, 0]){
                         intersection(){
@@ -239,7 +243,7 @@ difference(){
         static_part();
         sphere(r=gap);
     } */
-    static_part(enlarge=gap);
+    static_part(enlarge=gap, extra_height=gear_thickness);
     
     place_screws(){
             translate([0,0,-gap-hinge_plate_thickness-eps])#cylinder(screw_head_height+eps*3, r=screw_head_radius+gap);
