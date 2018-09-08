@@ -121,6 +121,8 @@ module static_part(enlarge=0){
     }
 }
 
+// uncomment to view pieces separately
+//translate([50,0,0])
 rotate(a=rotate_static_by, v=[0,0,1]) {
     difference(){
         static_part();
