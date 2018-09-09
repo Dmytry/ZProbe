@@ -68,11 +68,24 @@ magnet_r=8/2+print_dilation;
 magnet_sticks_out_by=0.2;
 
 gear_thickness=10;
+gear_clearance=2*print_dilation;
 mm_per_tooth=5;
 
+
+desired_gear_inner_radius=shaft_r2+gap+thickness;
+
+/*	assign(p  = mm_per_tooth * number_of_teeth / pi / 2)  //radius of pitch circle
+	assign(c  = p + mm_per_tooth / pi - clearance)        //radius of outer circle
+	assign(b  = p*cos(pressure_angle))                    //radius of base circle
+	assign(r  = p-(c-p)-clearance)                        //radius of root circle
+*/
+// assign(r  = mm_per_tooth * (number_of_teeth - 2) / pi / 2 - clearance //radius of root circle, might be one clearance short
 // number of teeth does not have to be integer because we are not making a whole gear
-number_of_teeth=((shaft_r2+gap+thickness+mm_per_tooth*0.5)*2*PI/mm_per_tooth);
-gear_outer_radius=outer_radius(mm_per_tooth, number_of_teeth, print_dilation);
+number_of_teeth=2 + (desired_gear_inner_radius)*PI*2/mm_per_tooth;
+
+gear_outer_radius = outer_radius(mm_per_tooth, number_of_teeth, gear_clearance);
+//gear_inner_radius = mm_per_tooth * (number_of_teeth - 2) / PI / 2 - 2*gear_clearance;
+
 
 rotate_static_by=45;//$t*90;//90;
 
@@ -102,7 +115,7 @@ module shaft(enlarge=0, extra_height=0){
         [abs(shaft_r1-shaft_r0), shaft_r1+enlarge],
         [h,shaft_r1+enlarge],
         [plate_width-hinge_attachment_h, shaft_r2+enlarge],
-        [plate_width+extra_height, shaft_r2+enlarge]
+        [plate_width+extra_height+gear_thickness, shaft_r2+enlarge]
     ]);
 }
 
@@ -125,8 +138,6 @@ module place_screws(){
     }
 }
 
-// for preview
-//rotate(a=90, v=[1,0,0])
 module static_part(enlarge=0, extra_height=0){
     shaft(enlarge, extra_height);
     extra_gap=2;
@@ -179,10 +190,10 @@ difference(){
         bevel_gear_by=gear_outer_radius-(shaft_r2+gap+thickness);
         intersection(){
             translate([0,0,plate_width+gear_thickness*0.5-bevel_gear_by*0.5]) rotate(a=90 - (360.0/number_of_teeth), v=[0,0,1]){
-                gear(mm_per_tooth, number_of_teeth, gear_thickness+bevel_gear_by, teeth_to_hide=number_of_teeth*(3/4) - 3, clearance=2*print_dilation, backlash         =2*print_dilation);
+                gear(mm_per_tooth, number_of_teeth, gear_thickness+bevel_gear_by, teeth_to_hide=number_of_teeth*(3/4) - 3, clearance=gear_clearance, backlash         =2*print_dilation);
             }
             
-            translate([0,0,plate_width-bevel_gear_by])#cylinder(gear_thickness+bevel_gear_by+eps, r1=shaft_r2+gap+thickness, r2=shaft_r2+gap+thickness+gear_thickness+bevel_gear_by+eps);
+            translate([0,0,plate_width-bevel_gear_by])cylinder(gear_thickness+bevel_gear_by+eps, r1=shaft_r2+gap+thickness, r2=shaft_r2+gap+thickness+gear_thickness+bevel_gear_by+eps);
 
         }
         
