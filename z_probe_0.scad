@@ -332,22 +332,45 @@ difference(){
 
 
 rack_thickness=gear_thickness*0.5; 
+rack_width=mm_per_tooth*2;
+rail_grab_thickness=4;
+rail_grab_width=20;
+
+module bolt_hole(bolt_r, head_r, depth=large){// vertical, downwards by default
+    sequence=[
+    [-depth, bolt_r],
+    [0,bolt_r],
+    [0, head_r],    
+    [large, head_r]
+    ];
+    cylinder_sequence(sequence);
+}
 
 module rack_and_support(){
 
     translate([-actual_tooth_count*0.5*mm_per_tooth, shaft_r2+20]){
         extruder_to_shaft_axis_height=screw_plate_height+shaft_r2+extruder_to_plate_height;
         base_to_shaft_axis_height=extruder_to_shaft_axis_height+50;
+        h_offset=gear_radius+shaft_r2+0.5*base_depth;
         
+        vslot_size=20+print_dilation_max;
 
         a = mm_per_tooth / PI;
-        box([0,0,0], [base_to_shaft_axis_height, mm_per_tooth*2 - 2*a, rack_thickness]);
-        vslot_size=20+print_dilation_max;
-        
-        
+
+        box([base_to_shaft_axis_height-gear_radius, 0, 0], [base_to_shaft_axis_height, rack_width - 2*a, rack_thickness]);
         difference(){
-            box([-vslot_size,0,0], [mm_per_tooth*2, gear_radius+shaft_r2+0.5*base_depth + vslot_size, rack_thickness]);
-            #box([-vslot_size,gear_radius+shaft_r2+0.5*base_depth-vslot_size*0.5, -eps],[0, gear_radius+shaft_r2+0.5*base_depth+vslot_size*0.5, rack_thickness+eps]);
+            //box([-vslot_size,0,0], [rack_width, gear_radius+shaft_r2+0.5*base_depth + vslot_size, rack_thickness]);
+            hull(){
+                box([base_to_shaft_axis_height-gear_radius-rack_width, 0, 0], [base_to_shaft_axis_height-gear_radius, rack_width - 2*a, rack_thickness]);
+                box([-vslot_size, h_offset-vslot_size*0.5 -rail_grab_thickness, -eps], 
+                [rail_grab_thickness, h_offset+vslot_size*0.5+rail_grab_thickness, rail_grab_width+eps]            
+                );
+            }
+            #box([-vslot_size, h_offset-vslot_size*0.5, -eps],
+            [0, h_offset+vslot_size*0.5, rail_grab_width+eps]);
+            translate([ 8, h_offset, 0.5*rail_grab_width])rotate(a=90, v=[0,1,0]){
+                #bolt_hole(2, 4.5);
+            }
         }
         
         
