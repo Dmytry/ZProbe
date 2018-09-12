@@ -13,9 +13,11 @@ $fs=0.2;
 
 // cheap and simple z-probe
 // dimensions:
+extruder_to_plate_height=40;
+
 print_dilation=0.15;// when printing the shape gets dilated typically by 0.15mm
 print_dilation_max=0.2;// max 0.2
-print_single_wall=0.4;
+print_single_wall=0.5;
 eps=1E-3;// epsilon to use so preview is correct
 
 gap=1+2*print_dilation_max;
@@ -64,15 +66,18 @@ wire_r=1+print_dilation;
 
 magnet_h=2.8; // undilated, sometimes may want 1 dilation or 2 dilations
 magnet_r=8/2+print_dilation;
+magnet_pocket_snap_depth=2.0-print_dilation;
 
-magnet_sticks_out_by=0.2;
+magnet_sticks_out_by=0.5;
 
-gear_thickness=10;
+gear_thickness=12;
 gear_clearance=2*print_dilation;
-mm_per_tooth=5;
+// 2x larger than lego
+mm_per_tooth=PI*2;
+gear_pressure_angle=20;
 
 
-desired_gear_inner_radius=shaft_r2+gap+thickness;
+desired_gear_inner_radius=shaft_r2+gap+thickness+magnet_h+2*print_single_wall;
 
 /*	assign(p  = mm_per_tooth * number_of_teeth / pi / 2)  //radius of pitch circle
 	assign(c  = p + mm_per_tooth / pi - clearance)        //radius of outer circle
@@ -84,6 +89,7 @@ desired_gear_inner_radius=shaft_r2+gap+thickness;
 number_of_teeth=2 + (desired_gear_inner_radius)*PI*2/mm_per_tooth;
 
 gear_outer_radius = outer_radius(mm_per_tooth, number_of_teeth, gear_clearance);
+gear_radius = mm_per_tooth*number_of_teeth / (2*PI);
 //gear_inner_radius = mm_per_tooth * (number_of_teeth - 2) / PI / 2 - 2*gear_clearance;
 
 
@@ -138,28 +144,51 @@ module place_screws(){
     }
 }
 
-module static_part(enlarge=0, extra_height=0){
+module static_part_outer(enlarge=0, extra_height=0){// without any holes, used for carving against other pieces
     shaft(enlarge, extra_height);
     extra_gap=2;
-    difference(){
-        translate([shaft_r2-screw_plate_thickness,-screw_plate_height-shaft_r2+extra_gap]){
-            cube(size=[screw_plate_thickness, screw_plate_height+shaft_r2-extra_gap, plate_width]);
-        }        
-        place_screws(){
-            cylinder(screw_plate_thickness+2*eps, r=screw_radius);
-        }       
+    translate([shaft_r2-screw_plate_thickness,-screw_plate_height-shaft_r2+extra_gap]){
+        cube(size=[screw_plate_thickness, screw_plate_height+shaft_r2-extra_gap, plate_width]);
+    }        
+}
+
+module magnet_pocket(){// the pocket is placed along y axis
+    rotate(a=90, v=[1,0,0]) cylinder(h=magnet_h+2*print_dilation_max, r=magnet_r);
+    translate([0,0,magnet_pocket_snap_depth*2])
+    hull(){
+        rotate(a=90, v=[1,0,0]) cylinder(h=magnet_h+2*print_dilation_max, r=magnet_r);
+        translate([0,0,large])rotate(a=90, v=[1,0,0]) cylinder(h=magnet_h+2*print_dilation_max, r=magnet_r);
     }
 }
+
+magnet_pocket_depth=plate_width-hinge_attachment_h+magnet_r;
 
 // uncomment to view pieces separately
 //translate([50,0,0])
 rotate(a=rotate_static_by, v=[0,0,1]) {
     difference(){
-        static_part();
-        shaft(-thickness);
-        translate([-span_in_circle(magnet_r*2, shaft_r2-print_single_wall), 0, plate_width+magnet_r-hinge_attachment_h]){
-            rotate(a=90, v=[0,1,0]) #cylinder(h=magnet_h+2*print_dilation_max, r=magnet_r);
+        union(){
+            difference(){
+                static_part_outer();
+                shaft(-thickness);
+                place_screws(){
+                    cylinder(screw_plate_thickness+2*eps, r=screw_radius);
+                }
+            }
+            intersection(){
+                shaft();
+                box([-large, -large, 0], [-span_in_circle(magnet_r*2, shaft_r2-print_single_wall)+magnet_h+thickness, large,  plate_width+gear_thickness]);
+            }
         }
+        
+        /*
+        hull(){
+            translate([-span_in_circle(magnet_r*2, shaft_r2-print_single_wall), 0, plate_width+magnet_r-hinge_attachment_h])
+            rotate(a=90, v=[0,1,0])cylinder(h=magnet_h+2*print_dilation_max, r=magnet_r);
+            translate([-span_in_circle(magnet_r*2, shaft_r2-print_single_wall), 0, plate_width+gear_thickness-magnet_pocket_snap_depth])rotate(a=90, v=[0,1,0]) cylinder(h=magnet_h+2*print_dilation_max, r=magnet_r);
+        }*/
+        translate([-span_in_circle((magnet_r-print_dilation_max)*2, shaft_r2-print_single_wall), 0, magnet_pocket_depth])rotate(a=90,v=[0,0,1])magnet_pocket();
+
     }
 }
 
@@ -181,6 +210,14 @@ module wire_conduit(){
         }
 }
 
+module switch_holes(){
+
+}
+
+extra_angle=30;
+teeth_to_hide=number_of_teeth*3/4-extra_angle*number_of_teeth/180 - 0.5;
+actual_tooth_count=floor(number_of_teeth-teeth_to_hide);
+
 difference(){
     cr=shaft_r2-gap-screw_plate_thickness;
     union(){
@@ -189,8 +226,8 @@ difference(){
         
         bevel_gear_by=gear_outer_radius-(shaft_r2+gap+thickness);
         intersection(){
-            translate([0,0,plate_width+gear_thickness*0.5-bevel_gear_by*0.5]) rotate(a=90 - (360.0/number_of_teeth), v=[0,0,1]){
-                gear(mm_per_tooth, number_of_teeth, gear_thickness+bevel_gear_by, teeth_to_hide=number_of_teeth*(3/4) - 3, clearance=gear_clearance, backlash         =2*print_dilation);
+            translate([0,0,plate_width+gear_thickness*0.5-bevel_gear_by*0.5]) rotate(a=90-extra_angle, v=[0,0,1]){
+                gear(mm_per_tooth, number_of_teeth, gear_thickness+bevel_gear_by, teeth_to_hide=teeth_to_hide, clearance=gear_clearance, backlash         =2*print_dilation);
             }
             
             translate([0,0,plate_width-bevel_gear_by])cylinder(gear_thickness+bevel_gear_by+eps, r1=shaft_r2+gap+thickness, r2=shaft_r2+gap+thickness+gear_thickness+bevel_gear_by+eps);
@@ -215,8 +252,8 @@ difference(){
                     [base_depth + screw_plate_thickness, -magnet_sticks_out_by, plate_width]
                     );
                     box(// part where switch goes
-                    [0.5*(base_depth-switch_width) + screw_plate_thickness - thickness, -40, 0],
-                    [0.5*(base_depth+switch_width) + screw_plate_thickness + thickness, -39, 0.5*(plate_width+switch_length)+wire_r+thickness]);
+                    [0.5*(base_depth-switch_width) + screw_plate_thickness - thickness, -extruder_to_plate_height, 0],
+                    [0.5*(base_depth+switch_width) + screw_plate_thickness + thickness, -extruder_to_plate_height+1, 0.5*(plate_width+switch_length)]);
                 }
                 
                 box(//cut off unwanted part of the hull
@@ -251,10 +288,10 @@ difference(){
         }
     }
     /* minkowski(){
-        static_part();
+        static_part_outer();
         sphere(r=gap);
     } */
-    static_part(enlarge=gap, extra_height=gear_thickness);
+    static_part_outer(enlarge=gap, extra_height=gear_thickness);
     
     place_screws(){
             translate([0,0,-gap-hinge_plate_thickness-eps])#cylinder(screw_head_height+eps*3, r=screw_head_radius+gap);
@@ -266,17 +303,57 @@ difference(){
         translate([0,0,switch_wire_1])wire_conduit();
         translate([0,0,switch_wire_2])wire_conduit();
         // holes for screwing the switch in
-        translate([0, -switch_hole_h, -switch_hole_offset]) rotate(a=90, v=[0,1,0]) #cylinder(large, r=switch_hole_r+print_dilation, center=true);
-        translate([0, -switch_hole_h, switch_hole_offset]) rotate(a=90, v=[0,1,0]) #cylinder(large, r=switch_hole_r+print_dilation, center=true);
+        sequence=[
+            [-large, switch_hole_r*2], 
+            [-switch_width*0.5-thickness-print_dilation, switch_hole_r*2], 
+            [-switch_width*0.5-thickness-print_dilation, switch_hole_r], 
+            [0, switch_hole_r],
+            [switch_width*0.5+thickness+print_dilation, switch_hole_r], 
+            [switch_width*0.5+thickness+print_dilation, switch_hole_r*2], 
+            [large, switch_hole_r*2]
+        ];
+        
+        translate([0, -switch_hole_h, -switch_hole_offset]) rotate(a=90, v=[0,1,0]) {
+            //#cylinder(large, r=switch_hole_r+print_dilation, center=true);
+            cylinder_sequence(sequence);
+        }
+        translate([0, -switch_hole_h, switch_hole_offset]) rotate(a=90, v=[0,1,0]){
+            //#cylinder(large, r=switch_hole_r+print_dilation, center=true);
+            cylinder_sequence(sequence);
+        }
     }
     // pocket for the magnet
-
-/*
-    translate([0,-shaft_r2-gap-print_single_wall, plate_width+magnet_r-hinge_attachment_h]){
-        rotate(a=90, v=[1,0,0]) #cylinder(h=magnet_h+2*print_dilation_max, r=magnet_r);
+    translate([0,-shaft_r2-gap-print_single_wall, plate_width-hinge_attachment_h+magnet_r]){
+       magnet_pocket();
     }
-*/    
-   
-    
+
     //translate([-eps, -eps, -eps]) cube(size=[2*shaft_r2, 2*shaft_r2, plate_width+eps*2]);
 }
+
+
+rack_thickness=gear_thickness*0.5; 
+
+module rack_and_support(){
+
+    translate([-actual_tooth_count*0.5*mm_per_tooth, shaft_r2+20]){
+        extruder_to_shaft_axis_height=screw_plate_height+shaft_r2+extruder_to_plate_height;
+        base_to_shaft_axis_height=extruder_to_shaft_axis_height+50;
+        
+
+        a = mm_per_tooth / PI;
+        box([0,0,0], [base_to_shaft_axis_height, mm_per_tooth*2 - 2*a, rack_thickness]);
+        vslot_size=20+print_dilation_max;
+        
+        
+        difference(){
+            box([-vslot_size,0,0], [mm_per_tooth*2, gear_radius+shaft_r2+0.5*base_depth + vslot_size, rack_thickness]);
+            #box([-vslot_size,gear_radius+shaft_r2+0.5*base_depth-vslot_size*0.5, -eps],[0, gear_radius+shaft_r2+0.5*base_depth+vslot_size*0.5, rack_thickness+eps]);
+        }
+        
+        
+        translate([base_to_shaft_axis_height, mm_per_tooth*2-a, rack_thickness*0.5]){
+            rack(mm_per_tooth=mm_per_tooth, number_of_teeth=actual_tooth_count, thickness=rack_thickness, height=mm_per_tooth*2, clearance=gear_clearance, backlash=2*print_dilation);
+        }
+    }
+}
+rack_and_support();
