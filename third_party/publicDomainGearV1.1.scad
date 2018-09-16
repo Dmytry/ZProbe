@@ -113,9 +113,9 @@ module rack (
 	pressure_angle  = 28,   //Controls how straight or bulged the tooth sides are. In degrees.
 	backlash        = 0.0   //gap between two meshing teeth, in the direction along the circumference of the pitch circle
 ) {
-	assign(pi = 3.1415926)
-	assign(a = mm_per_tooth / pi) //addendum
-	assign(t = a*cos(pressure_angle)-1)         //tooth side is tilted so top/bottom corners move this amount
+	pi = 3.1415926;
+	a = mm_per_tooth / pi; //addendum
+	t = a*tan(pressure_angle);//a*cos(pressure_angle)-1;         //tooth side is tilted so top/bottom corners move this amount
 		for (i = [0:number_of_teeth-1] )
 			translate([i*mm_per_tooth,0,0])
 				linear_extrude(height = thickness, center = true, convexity = 10)
@@ -164,11 +164,13 @@ d12=pitch_radius(mm_per_tooth,n1) + pitch_radius(mm_per_tooth,n2);
 d13=pitch_radius(mm_per_tooth,n1) + pitch_radius(mm_per_tooth,n3);
 d14=pitch_radius(mm_per_tooth,n1) + pitch_radius(mm_per_tooth,n4);
 
-translate([ 0,    0, 0]) rotate([0,0, $t*360/n1])                 color([1.00,0.75,0.75]) gear(mm_per_tooth,n1,thickness,hole);
-translate([ 0,  d12, 0]) rotate([0,0,-($t+n2/2-0*n1+1/2)*360/n2]) color([0.75,1.00,0.75]) gear(mm_per_tooth,n2,thickness,hole,0,108);
-translate([ d13,  0, 0]) rotate([0,0,-($t-n3/4+n1/4+1/2)*360/n3]) color([0.75,0.75,1.00]) gear(mm_per_tooth,n3,thickness,hole);
-translate([ d13,  0, 0]) rotate([0,0,-($t-n3/4+n1/4+1/2)*360/n3]) color([0.75,0.75,1.00]) gear(mm_per_tooth,n3,thickness,hole);
-translate([-d14,  0, 0]) rotate([0,0,-($t-n4/4-n1/4+1/2-floor(n4/4)-3)*360/n4]) color([1.00,0.75,0.50]) gear(mm_per_tooth,n4,thickness,hole,0,n4-3);
-translate([(-floor(n5/2)-floor(n1/2)+$t+n1/2-1/2)*9, -d1+0.0, 0]) rotate([0,0,0]) color([0.75,0.75,0.75]) rack(mm_per_tooth,n5,thickness,height);
+p=20;
+
+translate([ 0,    0, 0]) rotate([0,0, $t*360/n1])                 color([1.00,0.75,0.75]) gear(mm_per_tooth,n1,thickness,hole, pressure_angle=p);
+translate([ 0,  d12, 0]) rotate([0,0,-($t+n2/2-0*n1+1/2)*360/n2]) color([0.75,1.00,0.75]) gear(mm_per_tooth,n2,thickness,hole,0,108, pressure_angle=p);
+translate([ d13,  0, 0]) rotate([0,0,-($t-n3/4+n1/4+1/2)*360/n3]) color([0.75,0.75,1.00]) gear(mm_per_tooth,n3,thickness,hole, pressure_angle=p);
+translate([ d13,  0, 0]) rotate([0,0,-($t-n3/4+n1/4+1/2)*360/n3]) color([0.75,0.75,1.00]) gear(mm_per_tooth,n3,thickness,hole, pressure_angle=p);
+translate([-d14,  0, 0]) rotate([0,0,-($t-n4/4-n1/4+1/2-floor(n4/4)-3)*360/n4]) color([1.00,0.75,0.50]) gear(mm_per_tooth,n4,thickness,hole,0,n4-3, pressure_angle=p);
+translate([(-floor(n5/2)-floor(n1/2)+$t+n1/2-1/2)*9, -d1+0.0, 0]) rotate([0,0,0]) color([0.75,0.75,0.75]) rack(mm_per_tooth,n5,thickness,height, pressure_angle=p);
 
 
