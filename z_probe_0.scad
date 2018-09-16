@@ -68,13 +68,17 @@ magnet_h=2.8; // undilated, sometimes may want 1 dilation or 2 dilations
 magnet_r=8/2+print_dilation;
 magnet_pocket_snap_depth=2.0-print_dilation;
 
+small_magnet_h=1.0; // undilated, sometimes may want 1 dilation or 2 dilations
+small_magnet_r=5/2+print_dilation;
+
 magnet_sticks_out_by=0.5;
 
 gear_thickness=12;
 gear_clearance=2*print_dilation;
 // 2x larger than lego
 mm_per_tooth=PI*2;
-gear_pressure_angle=20;
+gear_pressure_angle=28;
+
 
 
 desired_gear_inner_radius=shaft_r2+gap+thickness+magnet_h+2*print_single_wall;
@@ -227,7 +231,7 @@ difference(){
         bevel_gear_by=gear_outer_radius-(shaft_r2+gap+thickness);
         intersection(){
             translate([0,0,plate_width+gear_thickness*0.5-bevel_gear_by*0.5]) rotate(a=90-extra_angle, v=[0,0,1]){
-                gear(mm_per_tooth, number_of_teeth, gear_thickness+bevel_gear_by, teeth_to_hide=teeth_to_hide, clearance=gear_clearance, backlash         =2*print_dilation);
+                gear(mm_per_tooth, number_of_teeth, gear_thickness+bevel_gear_by, teeth_to_hide=teeth_to_hide, clearance=gear_clearance, backlash         =2*print_dilation, pressure_angle=gear_pressure_angle);
             }
             
             translate([0,0,plate_width-bevel_gear_by])cylinder(gear_thickness+bevel_gear_by+eps, r1=shaft_r2+gap+thickness, r2=shaft_r2+gap+thickness+gear_thickness+bevel_gear_by+eps);
@@ -266,6 +270,7 @@ difference(){
                     [0.5*(base_depth+switch_width) + screw_plate_thickness + print_dilation, -40+eps+switch_height+print_dilation, 0.5*(plate_width+switch_length)+10]);
                 
                 // magnets
+                /*
                 translate([base_depth + screw_plate_thickness - magnet_r - thickness, eps, thickness+magnet_r]){
                     rotate(a=90, v=[1,0,0]) #cylinder(magnet_h, r=magnet_r);
                 }
@@ -275,7 +280,18 @@ difference(){
                 
                 translate([screw_plate_thickness + magnet_r + thickness, eps, plate_width*0.5]){
                     rotate(a=90, v=[1,0,0]) #cylinder(magnet_h, r=magnet_r);
+                }*/
+                translate([base_depth + screw_plate_thickness - magnet_r - thickness, eps, thickness+magnet_r]){
+                    rotate(a=90, v=[1,0,0]) #cylinder(small_magnet_h, r2=small_magnet_r, r1=1.5*small_magnet_r);
                 }
+                translate([base_depth + screw_plate_thickness - magnet_r - thickness, eps, plate_width-thickness-magnet_r]){
+                    rotate(a=90, v=[1,0,0]) #cylinder(small_magnet_h, r2=small_magnet_r, r1=1.5*small_magnet_r);
+                }
+                
+                translate([screw_plate_thickness + magnet_r + thickness, eps, plate_width*0.5]){
+                    rotate(a=90, v=[1,0,0]) #cylinder(small_magnet_h, r2=small_magnet_r, r1=1.5*small_magnet_r);
+                }
+                
             }
         }
         
@@ -332,7 +348,10 @@ difference(){
 
 
 rack_thickness=gear_thickness*0.5; 
+
 rack_width=mm_per_tooth*2;
+
+
 rail_grab_thickness=4;
 rail_grab_width=20;
 
@@ -346,7 +365,7 @@ module bolt_hole(bolt_r, head_r, depth=large){// vertical, downwards by default
     cylinder_sequence(sequence);
 }
 
-module rack_and_support(){
+module rack_and_support_old(){
 
     translate([-actual_tooth_count*0.5*mm_per_tooth, shaft_r2+20]){
         extruder_to_shaft_axis_height=screw_plate_height+shaft_r2+extruder_to_plate_height;
@@ -366,17 +385,62 @@ module rack_and_support(){
                 [rail_grab_thickness, h_offset+vslot_size*0.5+rail_grab_thickness, rail_grab_width+eps]            
                 );
             }
-            #box([-vslot_size, h_offset-vslot_size*0.5, -eps],
+            box([-vslot_size, h_offset-vslot_size*0.5, -eps],
             [0, h_offset+vslot_size*0.5, rail_grab_width+eps]);
             translate([ 8, h_offset, 0.5*rail_grab_width])rotate(a=90, v=[0,1,0]){
-                #bolt_hole(2, 4.5);
+                bolt_hole(2, 4.5);
             }
         }
         
         
-        translate([base_to_shaft_axis_height, mm_per_tooth*2-a, rack_thickness*0.5]){
-            rack(mm_per_tooth=mm_per_tooth, number_of_teeth=actual_tooth_count, thickness=rack_thickness, height=mm_per_tooth*2, clearance=gear_clearance, backlash=2*print_dilation);
+        translate([base_to_shaft_axis_height, rack_width-a, rack_thickness*0.5]){
+            rack(mm_per_tooth=mm_per_tooth, number_of_teeth=actual_tooth_count, thickness=rack_thickness, height=rack_width /* mm_per_tooth*2 */, clearance=gear_clearance, backlash=2*print_dilation, pressure_angle=gear_pressure_angle);
         }
     }
 }
+
+module rack_and_support_v2(x, y){// tooth profile middle line relatively to top of the centre of the v-slot beam
+    // right is x
+    // up is y    
+    addendum = mm_per_tooth / PI;
+    vslot_size=20+print_dilation_max;
+    
+    translate([x, y, rack_thickness*0.5]) rotate(a=90, v=[0,0,1]){
+       %cylinder(100,r=1);
+       rack(mm_per_tooth=mm_per_tooth, number_of_teeth=actual_tooth_count, thickness=rack_thickness, height=rack_width+2*addendum, clearance=gear_clearance, backlash=2*print_dilation, pressure_angle=gear_pressure_angle);
+    }
+    
+    rack_stem_min_x=x+addendum;
+    rack_stem_max_x=rack_stem_min_x+rack_width;
+
+    box([rack_stem_min_x, y-gear_radius, 0], [rack_stem_max_x, y, rack_thickness]);
+    difference(){
+        hull(){
+            box([rack_stem_min_x, y-gear_radius-rack_width, 0],[rack_stem_max_x, y-gear_radius, rack_thickness]);
+            box([-0.5*vslot_size-rail_grab_thickness, -vslot_size, 0], [0.5*vslot_size+rail_grab_thickness, rail_grab_thickness, rail_grab_width]);
+        }
+        
+        #
+        box([-0.5*vslot_size, -vslot_size, -eps],
+            [0.5*vslot_size, 0, rail_grab_width+eps]);
+            translate([0, 8, 0.5*rail_grab_width])rotate(a=-90, v=[1,0,0]){
+                #bolt_hole(2, 4.5);
+            }
+    }
+        
+    vslot_size=20+print_dilation_max;
+}
+
+module rack_and_support(){
+    extruder_to_shaft_axis_height=screw_plate_height+shaft_r2+extruder_to_plate_height;
+    base_to_shaft_axis_height=extruder_to_shaft_axis_height+50;
+    h_offset=gear_radius+shaft_r2+0.5*base_depth-5;
+    mirror(v=[1,0,0])
+    translate([90, -15, 0]) rotate(a=90, v=[0,0,1])rack_and_support_v2(h_offset,base_to_shaft_axis_height);
+}
+
+mirror(v=[1,0,0])
+%translate([55.5,79,0])rotate(a=180, v=[0,0,1])rack_and_support_old();
 rack_and_support();
+
+
