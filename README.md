@@ -6,7 +6,9 @@ Video of operation (click on image to play):
 
 Print instructions:
 
-I used PLA for this. Triangular infil at 10%, 0.2mm layer height.
+Install OpenSCAD, convert the .scad file into stl, then use slic3r to convert stl to gcode.
+
+I printed this with PLA. Triangular infil at 10%, 0.2mm layer height. You really don't need much infill as most of the strength and stiffness comes from the walls.
 
 Other parts and supplies:
 
