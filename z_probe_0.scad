@@ -153,7 +153,11 @@ module static_part_outer(enlarge=0, extra_height=0){// without any holes, used f
     extra_gap=2;
     translate([shaft_r2-screw_plate_thickness,-screw_plate_height-shaft_r2+extra_gap]){
         cube(size=[screw_plate_thickness, screw_plate_height+shaft_r2-extra_gap, plate_width]);
-    }        
+    }
+    
+    translate([shaft_r2-screw_plate_thickness, -4]){
+        cube(size=[screw_plate_thickness+motor_clearance-gap, 4, plate_width]);
+    }
 }
 
 module magnet_pocket(){// the pocket is placed along y axis
@@ -169,6 +173,15 @@ magnet_pocket_depth=plate_width-hinge_attachment_h+magnet_r;
 
 // uncomment to view pieces separately
 //translate([50,0,0])
+module hold_up_magnet_holes(){
+    for(i=[0 : 3]){
+        translate([shaft_r2-screw_plate_thickness + 0.5*(screw_plate_thickness+motor_clearance-gap), 0, thickness+1.2*small_magnet_r+i*(2*1.2*small_magnet_r+0.7*thickness)]){
+            rotate(a=90, v=[1,0,0]) #cylinder(small_magnet_h+eps, r2=small_magnet_r, r1=1.2*small_magnet_r);
+        }
+    }
+}
+
+
 rotate(a=rotate_static_by, v=[0,0,1]) {
     difference(){
         union(){
@@ -192,7 +205,8 @@ rotate(a=rotate_static_by, v=[0,0,1]) {
             translate([-span_in_circle(magnet_r*2, shaft_r2-print_single_wall), 0, plate_width+gear_thickness-magnet_pocket_snap_depth])rotate(a=90, v=[0,1,0]) cylinder(h=magnet_h+2*print_dilation_max, r=magnet_r);
         }*/
         translate([-span_in_circle((magnet_r-print_dilation_max)*2, shaft_r2-print_single_wall), 0, magnet_pocket_depth])rotate(a=90,v=[0,0,1])magnet_pocket();
-
+        
+        hold_up_magnet_holes();
     }
 }
 
@@ -286,14 +300,15 @@ difference(){
                 }
                 translate([base_depth + screw_plate_thickness - magnet_r - thickness, eps, plate_width-thickness-magnet_r]){
                     rotate(a=90, v=[1,0,0]) #cylinder(small_magnet_h, r2=small_magnet_r, r1=1.5*small_magnet_r);
-                }
-                
+                }                
                 translate([screw_plate_thickness + magnet_r + thickness, eps, plate_width*0.5]){
                     rotate(a=90, v=[1,0,0]) #cylinder(small_magnet_h, r2=small_magnet_r, r1=1.5*small_magnet_r);
-                }
+                }             
+                
                 
             }
         }
+
         
         difference(){
             cylinder(plate_width, r=shaft_r2+gap+thickness);
@@ -342,6 +357,10 @@ difference(){
     translate([0,-shaft_r2-gap-print_single_wall, plate_width-hinge_attachment_h+magnet_r]){
        magnet_pocket();
     }
+    
+    rotate(a=90, v=[0,0,1]){
+        mirror(v=[0,1,0])hold_up_magnet_holes();
+    }
 
     //translate([-eps, -eps, -eps]) cube(size=[2*shaft_r2, 2*shaft_r2, plate_width+eps*2]);
 }
@@ -360,7 +379,7 @@ module bolt_hole(bolt_r, head_r, depth=large){// vertical, downwards by default
     [-depth, bolt_r],
     [0,bolt_r],
     [0, head_r],    
-    [large, head_r]
+    [30, head_r]
     ];
     cylinder_sequence(sequence);
 }
