@@ -1,6 +1,6 @@
 # Z probe for hcmaker7 / ADIMLabs gantry 3d printer
 
-Video of operation: 
+Video of operation (click on image to play): 
 
 [![](http://img.youtube.com/vi/guoYLGDIiuw/0.jpg)](http://www.youtube.com/watch?v=guoYLGDIiuw "")
 
