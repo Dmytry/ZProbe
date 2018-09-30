@@ -20,7 +20,7 @@ Superglue, locktite worked good, any other should work.
 
 Connector for the mainboard: I used some header connectors I had. I'll post a link to an actual connector when I get it, if it works.
 
-Assembly instructions: Glue magnets into the recesses in the print head. To do that stick the magnets on a magnetic ruler (or your spatula that came with the printer) first, positioning them to match the holes, then put glue in the holes and press the piece with the magnets to it. (You can't simply glue the magnets one by one because they will snap together.)
+Assembly instructions: Glue magnets into the recesses in the probe head. To do that stick the magnets on a magnetic ruler (or your spatula that came with the printer) first, positioning them to match the holes, then put glue in the holes and press the piece with the magnets to it. (You can't simply glue the magnets one by one because they will snap together.)
 
 Note: to hold the head up you can either use the 5x1 magnets on a little ledge or use a pair of 8x2 magnets pushed hard into the slots in the printhead on the gear side (make sure they're oriented to attract).
 
