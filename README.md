@@ -24,7 +24,7 @@ Assembly instructions: Glue magnets into the recesses in the probe head. To do t
 
 Note: to hold the head up you can either use the 5x1 magnets on a little ledge or use a pair of 8x2 magnets pushed hard into the slots in the printhead on the gear side (make sure they're oriented to attract).
 
-Cut off 3 lengths of wire (I recommend black and red for ground and +5, and green or blue for signal), ~25cm longer than your printhead wire
+Cut off 3 lengths of wire (I recommend black and red for ground and +5, and green or blue for signal), ~25cm longer than your printhead wire.
 
 Solder wires to the microswitch ("c" to signal wire, "nc" to red, "no" to black), route wires through the holes in the probe head as can be seen in the video, all the way to your controller box. 
 
@@ -32,4 +32,4 @@ Connect the red wire to +5 , black to 0, and green to signal of the +z endstop. 
 
 Screw the probe head to the printhead using m3 x 6mm screws. Secure the microswitch using two m2 screws with nuts. Note that the holes in the print are intentionally tight to prevent screws from loosening. Secure the rack to the side rail using an M4x8 bolt and one of the v-slot nuts that came with the printer. The rack should be able to mesh with the probe head's gear as in the video. Try to position it to mesh with the very middle of the gear's width.
 
-Firmware: [Marlin 1.19 fork](https://github.com/Dmytry/Marlin)
+Firmware: [Marlin 1.1.9 fork](https://github.com/Dmytry/Marlin)
