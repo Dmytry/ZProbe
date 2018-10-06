@@ -10,19 +10,31 @@ screw_plate_height=12.5;
 screw_plate_hole_distance=24;
 screw_plate_hole_height=8;
 
+spring_outer_r=7/2;
+spring_inner_r=6/2;
+
 wire_r=1+print_dilation;
 
 thickness=2;
-lever_shaft_length=4;
+lever_shaft_length=spring_outer_r*2+0.5;
 lever_r=1;
 slot_side=lever_r*2;
 slot_depth=lever_r*sqrt(2)*2;
 slot_width=slot_depth*2;
 
 
-mechanism_width=10;
+mechanism_back_clearance=spring_outer_r;
+mechanism_front_clearance=spring_outer_r;
+mechanism_width=slot_width+mechanism_back_clearance+mechanism_front_clearance;
 
 slot_crooked_by=0.0;//not sure if i can get this to work at such dimensions, should try 0.1
+
+// [thickness+sqrt(2)*lever_r, lever_shaft_length*0.5, thickness+slot_depth]
+
+slot_axis_pos=[thickness+sqrt(2)*lever_r, lever_shaft_length*0.5, thickness+mechanism_back_clearance+slot_depth];
+
+
+
 
 
 screw_hole_r=0.97;
@@ -34,6 +46,16 @@ leaf_spring_thickness=0.4;
 leaf_spring_length=30;
 
 mechanism_length=50;
+
+probe_screw_offset=lever_r*2+screw_r+1.5;
+
+probe_screw_pos=[slot_axis_pos[0]+cos(22.5)*probe_screw_offset, 0, slot_axis_pos[2]+sin(22.5)*probe_screw_offset];
+
+probe_screw_contact_x=screw_r+1;
+probe_screw_contact_z=probe_screw_pos[2]+probe_screw_pos[0]-probe_screw_contact_x-screw_r*2*sqrt(2);
+
+plastic_spring=false;
+eps=0.001;
 
 module sequential_hull(){
 	for (i = [0: $children-2])
@@ -93,7 +115,7 @@ module mechanism_base(){
 module crooked_slot(){
     l=lever_shaft_length+2*print_dilation;
     cr=l*slot_crooked_by;
-    translate([thickness, 0, thickness+slot_depth]) rotate(a=90, v=[1,0,0])        
+    translate([thickness, 0, thickness+slot_depth+mechanism_back_clearance]) rotate(a=90, v=[1,0,0])        
             #hull(){
                 // ever so slightly crooked
                 //rotate(a=5, v=[0,1,0])cylinder(l, r=0.01, center=true);
@@ -116,18 +138,22 @@ module housing(positive=true, negative=true){
     difference(){
         if(positive){
             box([0, -l*0.5-thickness, 0], [mechanism_length+thickness, l*0.5+thickness, mechanism_width+thickness]);
+            translate([probe_screw_contact_x, 0, probe_screw_contact_z])
+            rotate(a=90, v=[1,0,0])cylinder(l+thickness*2, r=probe_screw_contact_x, center=true);
         }
             
         
         if(negative)union(){
             hull(){
-                box([thickness+slot_depth+cr+10, -l*0.5, thickness], [mechanism_length+thickness+1, l*0.5, thickness+slot_width]);
+                box([thickness+slot_depth+cr+10, -l*0.5, thickness+mechanism_back_clearance], [mechanism_length+thickness+1, l*0.5, thickness+mechanism_back_clearance+slot_width]);
                 crooked_slot();
             }
-            box([-1, -l*0.5, thickness+slot_depth*2], [mechanism_length+thickness+1, l*0.5, mechanism_width+thickness+1]);
+            box([thickness+slot_depth+cr, -l*0.5, thickness], [mechanism_length+thickness+1, l*0.5, thickness+mechanism_back_clearance]);
+            
+            box([-1, -l*0.5, thickness+mechanism_back_clearance+slot_width], [mechanism_length+thickness+1, l*0.5, mechanism_width+thickness+20]);
             // I'm too tired and lazy to figure out the formula.  
             
-            translate([1+screw_hole_r, 10, thickness+slot_depth*2+2.5])
+            translate([probe_screw_contact_x, 0, probe_screw_contact_z])
             rotate(a=90, v=[1,0,0])#cylinder(20, r=screw_hole_r, center=true);
         
         }
@@ -157,9 +183,9 @@ module lever(){
     
     end_of_leaf_spring=lever_r*4+screw_r*2+2+leaf_spring_length;
     difference(){
-    // butt, 5 contact points
+    
         union(){
-            sequential_hull(){
+            sequential_hull(){// butt, 5 contact points
                 translate([0,0,lever_r*attach])sphere(r=lever_r-slot_crooked_by*(lever_shaft_length-lever_r*attach));
                 translate([lever_r*1.5,0,0])cylinder(l, r=lever_r);
                 translate([0, 0, lever_shaft_length-lever_r])sphere(r=lever_r-slot_crooked_by*(lever_shaft_length-lever_r)/lever_shaft_length);
@@ -168,18 +194,39 @@ module lever(){
             sequential_hull(){
                 translate([lever_r*1.5,0,0])cylinder(l, r=lever_r);
                 translate([lever_r*2+screw_r*2+2,0,0])cylinder(l, r=lever_r);
-                translate([lever_r*4+screw_r*2+2,0,0])cylinder(l, r=leaf_spring_thickness*0.5);
-                translate([end_of_leaf_spring,0,0])cylinder(l, r=leaf_spring_thickness*0.5);
-                translate([end_of_leaf_spring+2*(screw_r+print_dilation+1),0,0])cylinder(l, r=screw_r+print_dilation+thickness);
+                translate([lever_r*4+screw_r*2+3.5,0,0])cylinder(l, r=leaf_spring_thickness*0.5);
+                if(plastic_spring){
+                    translate([end_of_leaf_spring,0,0])cylinder(l, r=leaf_spring_thickness*0.5);
+                    translate([end_of_leaf_spring+2*(screw_r+print_dilation+1),0,0])cylinder(l, r=screw_r+print_dilation+thickness);
+                }
             }
-            translate([lever_r*2+screw_r+2, 0, l*0.5])rotate(a=22.5, v=[0,0,1])rotate(a=-90, v=[1,0,0]){
-            cylinder(lever_r*3.5, r=l*0.5, center=true);
+            hull(){
+                
+                translate([probe_screw_offset, 0, l*0.5])rotate(a=22.5, v=[0,0,1])rotate(a=-90, v=[1,0,0]){
+                    cylinder(lever_r*3.3, r=screw_r+1, center=true);
+                }
+                translate([probe_screw_offset, 0, 0])rotate(a=22.5, v=[0,0,1])rotate(a=-90, v=[1,0,0]){
+                    cylinder(lever_r*3.3, r=screw_r+1, center=true);
+                }
             }
         }
-        translate([lever_r*2+screw_r+2, 0, l*0.5])rotate(a=22.5, v=[0,0,1])rotate(a=-90, v=[1,0,0]){
+        
+        translate([probe_screw_offset, 0, l*0.5])rotate(a=22.5, v=[0,0,1])rotate(a=-90, v=[1,0,0]){
             #translate([0,0,-2])cylinder(screw_l, r=screw_hole_r);
         }
-        translate([end_of_leaf_spring+2*(screw_r+print_dilation+1),0,0])cylinder(l, r=screw_r+print_dilation);
+        if(plastic_spring)translate([end_of_leaf_spring+2*(screw_r+print_dilation+1),0,0])cylinder(l, r=screw_r+print_dilation);
+    }
+}
+
+module spring_endpiece(){
+    difference(){
+        cylinder_sequence([
+            [0, spring_inner_r],
+            [spring_inner_r*1, spring_inner_r],
+            [spring_inner_r*1+(spring_outer_r-spring_inner_r), spring_outer_r],
+            [spring_inner_r*2.3, spring_outer_r]
+        ]);
+        translate([0,0,spring_inner_r*2.3])rotate(45, v=[1,0,0])#cube([spring_outer_r*2,spring_outer_r*sqrt(2),spring_outer_r*sqrt(2)], center=true);
     }
 }
 
@@ -190,28 +237,30 @@ module lever_clamped(){
     }
 }
 
-module lever_visualize(a=0){
-    translate([thickness+sqrt(2)*lever_r, lever_shaft_length*0.5, thickness+slot_depth])rotate(90, v=[1,0,0])rotate(a, v=[0,0,1]){
-    lever();
+module lever_visualize(a=22.5){
+    translate(slot_axis_pos)rotate(90, v=[1,0,0])rotate(a, v=[0,0,1]){
+    lever_clamped();
 }
 }
 //mechanism_base();
 
 // Prints
 housing();
-translate([0,10,0])lever();
+translate([0,10,0])lever_clamped();
+translate([14,10,0])spring_endpiece();
+translate([14+2*spring_outer_r+1,10,0])spring_endpiece();
 
 // Visualization
 
 translate([0,-20,0]){
-    %housing(false, true);
+    //%housing(false, true);
 }
 
 
 
 %lever_visualize();
 
-translate([0,-40,0]){
+% translate([0,-40,0]){
     l=lever_shaft_length+2*print_dilation;
     difference(){
         box([0, -l*0.5+0.01, 0], [mechanism_length+thickness, l*0.5-0.01, mechanism_width+thickness]);
