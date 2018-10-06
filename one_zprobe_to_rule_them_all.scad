@@ -19,17 +19,21 @@ slot_side=lever_r*2;
 slot_depth=lever_r*sqrt(2)*2;
 slot_width=slot_depth*2;
 
-mechanism_length=30;
 
 mechanism_width=10;
 
-slot_crooked_by=0.05;
+slot_crooked_by=0.0;//not sure if i can get this to work at such dimensions, should try 0.1
 
 
-m2_hole_r=0.95;
+screw_hole_r=0.97;
 
 screw_r=1;
 screw_l=20;
+
+leaf_spring_thickness=0.4;
+leaf_spring_length=30;
+
+mechanism_length=50;
 
 module sequential_hull(){
 	for (i = [0: $children-2])
@@ -81,7 +85,7 @@ module mechanism_base(){
             box([mechanism_width-lever_slot_size,0,0],[mechanism_width, thickness+lever_slot_size*0.5, thickness+lever_shaft_length]);
         }
         translate([mechanism_width-lever_slot_size*0.5, thickness+lever_slot_size*0.5, thickness+lever_shaft_length*0.5])rotate(45,v=[0,0,1])cube([lever_slot_size*sqrt(0.5),lever_slot_size*sqrt(0.5), lever_shaft_length], center=true);
-        translate([m2_hole_r+1, thickness+0.25*lever_slot_size, 0])#cylinder(thickness+10, r=m2_hole_r);
+        translate([screw_hole_r+1, thickness+0.25*lever_slot_size, 0])#cylinder(thickness+10, r=screw_hole_r);
     }
     
 }*/
@@ -121,7 +125,10 @@ module housing(positive=true, negative=true){
                 crooked_slot();
             }
             box([-1, -l*0.5, thickness+slot_depth*2], [mechanism_length+thickness+1, l*0.5, mechanism_width+thickness+1]);
-            // slot           
+            // I'm too tired and lazy to figure out the formula.  
+            
+            translate([1+screw_hole_r, 10, thickness+slot_depth*2+2.5])
+            rotate(a=90, v=[1,0,0])#cylinder(20, r=screw_hole_r, center=true);
         
         }
     }
@@ -147,19 +154,32 @@ module lever(){
     l=lever_shaft_length-extra_clearance;
     attach=0.75;
     
+    
+    end_of_leaf_spring=lever_r*4+screw_r*2+2+leaf_spring_length;
+    difference(){
     // butt, 5 contact points
-    sequential_hull(){
-        translate([slot_crooked_by*(lever_shaft_length-lever_r*attach),0,lever_r*attach])sphere(r=lever_r);
-        translate([lever_r*1.5,0,0])cylinder(l, r=lever_r);
-        translate([slot_crooked_by*(lever_shaft_length-lever_r)/lever_shaft_length, 0, lever_shaft_length-lever_r])sphere(r=lever_r);
-    }
-    hull(){
-        translate([lever_r*1.5,0,0])cylinder(l, r=lever_r);
-        translate([lever_r*2+screw_r*2+2,0,0])cylinder(l, r=lever_r);
-        translate([lever_r*5+screw_r*2+2,0,0])cylinder(l, r=0.1);
-    }
-    translate([lever_r*2+screw_r+2, 0, l*0.5])rotate(a=22.5, v=[0,0,1])rotate(a=-90, v=[1,0,0]){
-        #cylinder(screw_l, r=screw_hole_r);
+        union(){
+            sequential_hull(){
+                translate([0,0,lever_r*attach])sphere(r=lever_r-slot_crooked_by*(lever_shaft_length-lever_r*attach));
+                translate([lever_r*1.5,0,0])cylinder(l, r=lever_r);
+                translate([0, 0, lever_shaft_length-lever_r])sphere(r=lever_r-slot_crooked_by*(lever_shaft_length-lever_r)/lever_shaft_length);
+            }
+            
+            sequential_hull(){
+                translate([lever_r*1.5,0,0])cylinder(l, r=lever_r);
+                translate([lever_r*2+screw_r*2+2,0,0])cylinder(l, r=lever_r);
+                translate([lever_r*4+screw_r*2+2,0,0])cylinder(l, r=leaf_spring_thickness*0.5);
+                translate([end_of_leaf_spring,0,0])cylinder(l, r=leaf_spring_thickness*0.5);
+                translate([end_of_leaf_spring+2*(screw_r+print_dilation+1),0,0])cylinder(l, r=screw_r+print_dilation+thickness);
+            }
+            translate([lever_r*2+screw_r+2, 0, l*0.5])rotate(a=22.5, v=[0,0,1])rotate(a=-90, v=[1,0,0]){
+            cylinder(lever_r*3.5, r=l*0.5, center=true);
+            }
+        }
+        translate([lever_r*2+screw_r+2, 0, l*0.5])rotate(a=22.5, v=[0,0,1])rotate(a=-90, v=[1,0,0]){
+            #translate([0,0,-2])cylinder(screw_l, r=screw_hole_r);
+        }
+        translate([end_of_leaf_spring+2*(screw_r+print_dilation+1),0,0])cylinder(l, r=screw_r+print_dilation);
     }
 }
 
@@ -170,9 +190,9 @@ module lever_clamped(){
     }
 }
 
-module lever_visualize(a=22.5){
+module lever_visualize(a=0){
     translate([thickness+sqrt(2)*lever_r, lever_shaft_length*0.5, thickness+slot_depth])rotate(90, v=[1,0,0])rotate(a, v=[0,0,1]){
-    %lever();
+    lever();
 }
 }
 //mechanism_base();
@@ -189,7 +209,7 @@ translate([0,-20,0]){
 
 
 
-lever_visualize();
+%lever_visualize();
 
 translate([0,-40,0]){
     l=lever_shaft_length+2*print_dilation;
