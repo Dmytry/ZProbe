@@ -155,6 +155,13 @@ module housing(positive=true, negative=true){
             
             translate([probe_screw_contact_x, 0, probe_screw_contact_z])
             rotate(a=90, v=[1,0,0])#cylinder(20, r=screw_hole_r, center=true);
+            
+            // a bunch of holes for fixing the spring piece
+            
+            for(i=[1:4]){
+                translate([i*7.5+15, 0, thickness+mechanism_back_clearance+slot_width*0.5])
+                rotate(a=90, v=[1,0,0])#cylinder(20, r=screw_hole_r, center=true);
+            }
         
         }
     }
@@ -218,17 +225,6 @@ module lever(){
     }
 }
 
-module spring_endpiece(){
-    difference(){
-        cylinder_sequence([
-            [0, spring_inner_r],
-            [spring_inner_r*1, spring_inner_r],
-            [spring_inner_r*1+(spring_outer_r-spring_inner_r), spring_outer_r],
-            [spring_inner_r*2.3, spring_outer_r]
-        ]);
-        translate([0,0,spring_inner_r*2.3])rotate(45, v=[1,0,0])#cube([spring_outer_r*2,spring_outer_r*sqrt(2),spring_outer_r*sqrt(2)], center=true);
-    }
-}
 
 module lever_clamped(){
     intersection(){// lop off bottom
@@ -238,17 +234,54 @@ module lever_clamped(){
 }
 
 module lever_visualize(a=22.5){
-    translate(slot_axis_pos)rotate(90, v=[1,0,0])rotate(a, v=[0,0,1]){
-    lever_clamped();
+        translate(slot_axis_pos)rotate(90, v=[1,0,0])rotate(a, v=[0,0,1]){
+        lever_clamped();
+    }
 }
+
+module spring_endpiece(){
+    difference(){
+        cylinder_sequence([
+            [0, spring_inner_r],
+            [spring_inner_r*1, spring_inner_r],
+            [spring_inner_r*1+(spring_outer_r-spring_inner_r), spring_outer_r],
+            [spring_inner_r*2.3, spring_outer_r]
+        ]);
+        translate([0,0,spring_inner_r*2.7])rotate(45, v=[1,0,0])#cube([spring_outer_r*2,spring_outer_r*sqrt(2),spring_outer_r*sqrt(2)], center=true);
+    }
 }
+
+module spring_backing_piece(){
+    l=lever_shaft_length;
+    r=0.1;
+    wedge_scale=1.5;
+    piece_length=20;
+    hull(){
+        cylinder(l,r=0.1);
+        translate([spring_outer_r*wedge_scale, -spring_outer_r*0.25*wedge_scale,0])cylinder(l,r=r);
+        translate([spring_outer_r*wedge_scale, spring_outer_r*0.25*wedge_scale,0])cylinder(l,r=r);
+    }
+    translate([spring_outer_r*wedge_scale,0,0])
+    difference(){
+        {
+            box([0,-mechanism_back_clearance-slot_width*0.5, 0], [piece_length, mechanism_front_clearance+slot_width*0.5, l]);
+        }
+        hull(){
+            translate([screw_r+thickness,0,0])cylinder(l, r=screw_r+print_dilation);
+            translate([piece_length-screw_r-thickness,0,0])cylinder(l, r=screw_r+print_dilation);
+        }
+    }
+}
+
 //mechanism_base();
 
 // Prints
 housing();
 translate([0,10,0])lever_clamped();
-translate([14,10,0])spring_endpiece();
-translate([14+2*spring_outer_r+1,10,0])spring_endpiece();
+translate([15,10,0])spring_endpiece();
+translate([15+2*spring_outer_r+1,10,0])spring_endpiece();
+
+translate([30,15,0])spring_backing_piece();
 
 // Visualization
 
