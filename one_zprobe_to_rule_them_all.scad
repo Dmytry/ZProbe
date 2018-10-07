@@ -122,8 +122,8 @@ module mechanism_base(){
 module crooked_slot(){
     l=lever_shaft_length+2*print_dilation;
     cr=l*slot_crooked_by;
-    translate([thickness, 0, thickness+slot_depth+mechanism_back_clearance]) rotate(a=90, v=[1,0,0])        
-            #hull(){
+    translate([thickness, 0, thickness+slot_depth+mechanism_back_clearance]) rotate(a=90, v=[1,0,0]) {       
+            hull(){
                 // ever so slightly crooked
                 //rotate(a=5, v=[0,1,0])cylinder(l, r=0.01, center=true);
                 translate([cr,0,-l*0.5])sphere(r=0.01);
@@ -138,26 +138,35 @@ module crooked_slot(){
                 //translate([slot_depth, -slot_depth, 0])cylinder(l, r=0.01, center=true);
                 //translate([slot_depth, slot_depth, 0])cylinder(l, r=0.01, center=true);
             }
+        }
+    hull(){
+        #translate([thickness,0,thickness+slot_depth+mechanism_back_clearance])cylinder(slot_depth+0.1, r=screw_r+0.5);
+        translate([thickness+slot_depth,0,thickness+slot_depth+mechanism_back_clearance])cylinder(slot_depth+0.1, r=screw_r+0.5);
+    }
 }
 module housing(positive=true, negative=true){
     l=lever_shaft_length+2*print_dilation;
     cr=l*slot_crooked_by;
     difference(){
         if(positive){
-            box([0, -l*0.5-thickness, 0], [mechanism_length+thickness, l*0.5+thickness, mechanism_width+thickness]);
+            hull(){
+                box([0, -l*0.5-thickness, 0], [mechanism_length+thickness, l*0.5+thickness, mechanism_width+thickness]);
+                translate([probe_screw_contact_x, 0, probe_screw_contact_z])
+                rotate(a=90, v=[1,0,0])cylinder(l+thickness*2, r=screw_r+1, center=true);
+            }
             
             box([slot_axis_pos[0]+lever_length, -l*0.5-thickness, mechanism_width+thickness], [mechanism_length+thickness, l*0.5+thickness, mechanism_width+2*thickness]);
             
-            translate([probe_screw_contact_x, 0, probe_screw_contact_z])
-            rotate(a=90, v=[1,0,0])cylinder(l+thickness*2, r=screw_r+1, center=true);
+            
         }
             
         
         if(negative)union(){
             hull(){
-                box([thickness+slot_depth+cr+10, -l*0.5, thickness+mechanism_back_clearance], [mechanism_length+thickness+1, l*0.5, thickness+mechanism_back_clearance+slot_width]);
-                crooked_slot();
+                box([thickness+slot_depth+cr, -l*0.5, thickness+mechanism_back_clearance], [mechanism_length+thickness+1, l*0.5, thickness+mechanism_back_clearance+slot_width]);
+                
             }  
+            crooked_slot();
             box([thickness+slot_depth+cr, -l*0.5, thickness], [mechanism_length+thickness+1, l*0.5, thickness+mechanism_back_clearance]);
             
             box([-10, -l*0.5, thickness+mechanism_back_clearance+slot_width], [mechanism_length+thickness+1, l*0.5, mechanism_width+thickness+0.1]);
@@ -294,7 +303,7 @@ module spring_backing_piece(){
     translate([spring_outer_r*wedge_scale,0,0])
     difference(){
         {
-            box([0,-mechanism_back_clearance-slot_width*0.5+print_dilation, 0], [piece_length, mechanism_front_clearance+slot_width*0.5-print_dilation-sag, l]);
+            box([0,/* -mechanism_back_clearance-slot_width*0.5+print_dilation */ -screw_r-thickness, 0], [piece_length, /* mechanism_front_clearance+slot_width*0.5-print_dilation-sag */screw_r+thickness, l]);
         }
         hull(){
             translate([screw_r+thickness,0,0])cylinder(l, r=screw_r+print_dilation);
@@ -311,7 +320,7 @@ translate([0,10,0])lever_clamped();
 translate([15,10,0])spring_endpiece();
 translate([15+2*spring_outer_r+1,10,0])spring_endpiece();
 
-translate([30,15,0])spring_backing_piece();
+translate([28,10,0])spring_backing_piece();
 
 // Visualization
 
