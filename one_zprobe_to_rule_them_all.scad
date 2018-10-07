@@ -13,13 +13,13 @@ screw_plate_hole_height=8;
 spring_outer_r=7/2;
 spring_inner_r=6/2;
 
-wire_r=1+print_dilation;
+wire_r=1.25/2+print_dilation;
 
 screw_hole_r=0.97;
 screw_r=1;
 screw_l=20;
 
-thickness=2;
+thickness=1.2;
 lever_shaft_length=spring_outer_r*2+0.5;
 lever_r=1;
 slot_side=lever_r*2;
@@ -30,7 +30,10 @@ lever_length=lever_r*4+screw_r*2+3.5;
 
 
 mechanism_back_clearance=spring_outer_r;
-mechanism_front_clearance=spring_outer_r+0.5+(lever_length*sin(22.5)-slot_width*0.5);
+
+sag=0.5;
+
+mechanism_front_clearance=spring_outer_r+sag+(lever_length*sin(22.5)-slot_width*0.5);
 
 mechanism_width=slot_width+mechanism_back_clearance+mechanism_front_clearance;
 
@@ -142,6 +145,9 @@ module housing(positive=true, negative=true){
     difference(){
         if(positive){
             box([0, -l*0.5-thickness, 0], [mechanism_length+thickness, l*0.5+thickness, mechanism_width+thickness]);
+            
+            box([slot_axis_pos[0]+lever_length, -l*0.5-thickness, mechanism_width+thickness], [mechanism_length+thickness, l*0.5+thickness, mechanism_width+2*thickness]);
+            
             translate([probe_screw_contact_x, 0, probe_screw_contact_z])
             rotate(a=90, v=[1,0,0])cylinder(l+thickness*2, r=screw_r+1, center=true);
         }
@@ -151,10 +157,10 @@ module housing(positive=true, negative=true){
             hull(){
                 box([thickness+slot_depth+cr+10, -l*0.5, thickness+mechanism_back_clearance], [mechanism_length+thickness+1, l*0.5, thickness+mechanism_back_clearance+slot_width]);
                 crooked_slot();
-            }
+            }  
             box([thickness+slot_depth+cr, -l*0.5, thickness], [mechanism_length+thickness+1, l*0.5, thickness+mechanism_back_clearance]);
             
-            box([-10, -l*0.5, thickness+mechanism_back_clearance+slot_width], [mechanism_length+thickness+1, l*0.5, mechanism_width+thickness+20]);
+            box([-10, -l*0.5, thickness+mechanism_back_clearance+slot_width], [mechanism_length+thickness+1, l*0.5, mechanism_width+thickness+0.1]);
             // I'm too tired and lazy to figure out the formula.  
             
             translate([probe_screw_contact_x, 0, probe_screw_contact_z])
@@ -165,6 +171,22 @@ module housing(positive=true, negative=true){
             for(i=[1:4]){
                 translate([i*7.5+15, 0, thickness+mechanism_back_clearance+slot_width*0.5])
                 rotate(a=90, v=[1,0,0])#cylinder(20, r=screw_hole_r, center=true);
+            }
+            
+            // a cut-out for the wire
+            n=10;
+            translate([slot_axis_pos[0],0,slot_axis_pos[2]])
+            for(k=[0:n-1]){
+                alpha_1=-22.5+45*k/n;
+                alpha_2=-22.5+45*(k+1)/n;
+                hull(){
+                    translate([cos(alpha_1)*probe_screw_offset, 0, sin(alpha_1)*probe_screw_offset]) rotate(90,v=[1,0,0]){
+                        cylinder(l, r=wire_r*2);
+                    }
+                    translate([cos(alpha_2)*probe_screw_offset, 0, sin(alpha_2)*probe_screw_offset]) rotate(90,v=[1,0,0]){
+                        cylinder(l, r=wire_r*2);
+                    }
+                }
             }
         
         }
@@ -227,6 +249,8 @@ module lever(){
         translate([probe_screw_offset, 0, l*0.5])rotate(a=22.5, v=[0,0,1])rotate(a=-90, v=[1,0,0]){
             #translate([0,0,-2])cylinder(screw_l, r=screw_hole_r);
         }
+        translate([probe_screw_offset, 0, l*0.5])cylinder(screw_l, r=wire_r);
+        
         if(plastic_spring)translate([end_of_leaf_spring+2*(screw_r+print_dilation+1),0,0])cylinder(l, r=screw_r+print_dilation);
     }
 }
@@ -270,7 +294,7 @@ module spring_backing_piece(){
     translate([spring_outer_r*wedge_scale,0,0])
     difference(){
         {
-            box([0,-mechanism_back_clearance-slot_width*0.5, 0], [piece_length, mechanism_front_clearance+slot_width*0.5, l]);
+            box([0,-mechanism_back_clearance-slot_width*0.5+print_dilation, 0], [piece_length, mechanism_front_clearance+slot_width*0.5-print_dilation-sag, l]);
         }
         hull(){
             translate([screw_r+thickness,0,0])cylinder(l, r=screw_r+print_dilation);
