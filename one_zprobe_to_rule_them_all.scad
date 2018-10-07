@@ -15,6 +15,10 @@ spring_inner_r=6/2;
 
 wire_r=1+print_dilation;
 
+screw_hole_r=0.97;
+screw_r=1;
+screw_l=20;
+
 thickness=2;
 lever_shaft_length=spring_outer_r*2+0.5;
 lever_r=1;
@@ -22,9 +26,12 @@ slot_side=lever_r*2;
 slot_depth=lever_r*sqrt(2)*2;
 slot_width=slot_depth*2;
 
+lever_length=lever_r*4+screw_r*2+3.5;
+
 
 mechanism_back_clearance=spring_outer_r;
-mechanism_front_clearance=spring_outer_r;
+mechanism_front_clearance=spring_outer_r+0.5+(lever_length*sin(22.5)-slot_width*0.5);
+
 mechanism_width=slot_width+mechanism_back_clearance+mechanism_front_clearance;
 
 slot_crooked_by=0.0;//not sure if i can get this to work at such dimensions, should try 0.1
@@ -37,10 +44,7 @@ slot_axis_pos=[thickness+sqrt(2)*lever_r, lever_shaft_length*0.5, thickness+mech
 
 
 
-screw_hole_r=0.97;
 
-screw_r=1;
-screw_l=20;
 
 leaf_spring_thickness=0.4;
 leaf_spring_length=30;
@@ -51,8 +55,8 @@ probe_screw_offset=lever_r*2+screw_r+1.5;
 
 probe_screw_pos=[slot_axis_pos[0]+cos(22.5)*probe_screw_offset, 0, slot_axis_pos[2]+sin(22.5)*probe_screw_offset];
 
-probe_screw_contact_x=screw_r+1;
-probe_screw_contact_z=probe_screw_pos[2]+probe_screw_pos[0]-probe_screw_contact_x-screw_r*2*sqrt(2);
+probe_screw_contact_x=0;
+probe_screw_contact_z=probe_screw_pos[2]+probe_screw_pos[0]-probe_screw_contact_x-screw_r*2*sqrt(2);// 1.5 necessary
 
 plastic_spring=false;
 eps=0.001;
@@ -139,7 +143,7 @@ module housing(positive=true, negative=true){
         if(positive){
             box([0, -l*0.5-thickness, 0], [mechanism_length+thickness, l*0.5+thickness, mechanism_width+thickness]);
             translate([probe_screw_contact_x, 0, probe_screw_contact_z])
-            rotate(a=90, v=[1,0,0])cylinder(l+thickness*2, r=probe_screw_contact_x, center=true);
+            rotate(a=90, v=[1,0,0])cylinder(l+thickness*2, r=screw_r+1, center=true);
         }
             
         
@@ -150,7 +154,7 @@ module housing(positive=true, negative=true){
             }
             box([thickness+slot_depth+cr, -l*0.5, thickness], [mechanism_length+thickness+1, l*0.5, thickness+mechanism_back_clearance]);
             
-            box([-1, -l*0.5, thickness+mechanism_back_clearance+slot_width], [mechanism_length+thickness+1, l*0.5, mechanism_width+thickness+20]);
+            box([-10, -l*0.5, thickness+mechanism_back_clearance+slot_width], [mechanism_length+thickness+1, l*0.5, mechanism_width+thickness+20]);
             // I'm too tired and lazy to figure out the formula.  
             
             translate([probe_screw_contact_x, 0, probe_screw_contact_z])
@@ -187,6 +191,8 @@ module lever(){
     l=lever_shaft_length-extra_clearance;
     attach=0.75;
     
+    wedge_r=0.2;
+    
     
     end_of_leaf_spring=lever_r*4+screw_r*2+2+leaf_spring_length;
     difference(){
@@ -201,7 +207,7 @@ module lever(){
             sequential_hull(){
                 translate([lever_r*1.5,0,0])cylinder(l, r=lever_r);
                 translate([lever_r*2+screw_r*2+2,0,0])cylinder(l, r=lever_r);
-                translate([lever_r*4+screw_r*2+3.5,0,0])cylinder(l, r=leaf_spring_thickness*0.5);
+                translate([lever_r*4+screw_r*2+3.5,0,0])cylinder(l, r=wedge_r);
                 if(plastic_spring){
                     translate([end_of_leaf_spring,0,0])cylinder(l, r=leaf_spring_thickness*0.5);
                     translate([end_of_leaf_spring+2*(screw_r+print_dilation+1),0,0])cylinder(l, r=screw_r+print_dilation+thickness);
@@ -253,11 +259,11 @@ module spring_endpiece(){
 
 module spring_backing_piece(){
     l=lever_shaft_length;
-    r=0.1;
+    r=0.2;
     wedge_scale=1.5;
     piece_length=20;
     hull(){
-        cylinder(l,r=0.1);
+        cylinder(l,r=r);
         translate([spring_outer_r*wedge_scale, -spring_outer_r*0.25*wedge_scale,0])cylinder(l,r=r);
         translate([spring_outer_r*wedge_scale, spring_outer_r*0.25*wedge_scale,0])cylinder(l,r=r);
     }
